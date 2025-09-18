@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { toast } from 'react-hot-toast'
+import apiService from '../../services/api.js'
 
 const ReviewManagement = () => {
   const [reviews, setReviews] = useState([])
@@ -27,10 +28,9 @@ const ReviewManagement = () => {
   const fetchReviews = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/reviews')
+      const data = await apiService.getReviews()
       
-      if (response.ok) {
-        const data = await response.json()
+      if (data.success) {
         setReviews(data.data || [])
       } else {
         console.error('Failed to fetch reviews')
@@ -85,13 +85,9 @@ const ReviewManagement = () => {
 
   const handleStatusChange = async (reviewId, newStatus) => {
     try {
-      const response = await fetch(`/api/reviews/${reviewId}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
-      })
+      const response = await apiService.updateReviewStatus(reviewId, newStatus)
 
-      if (response.ok) {
+      if (response.success) {
         setReviews(reviews.map(review => 
           review._id === reviewId ? {...review, status: newStatus} : review
         ))
@@ -111,11 +107,9 @@ const ReviewManagement = () => {
     }
 
     try {
-      const response = await fetch(`/api/reviews/${reviewId}`, {
-        method: 'DELETE'
-      })
+      const response = await apiService.deleteReview(reviewId)
 
-      if (response.ok) {
+      if (response.success) {
         setReviews(reviews.filter(review => review._id !== reviewId))
         toast.success('Review deleted successfully')
       } else {
@@ -145,16 +139,11 @@ const ReviewManagement = () => {
     e.preventDefault()
     
     try {
-      const response = await fetch(`/api/reviews/${editingReview._id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      })
+      const response = await apiService.updateReview(editingReview._id, formData)
 
-      if (response.ok) {
-        const updatedReview = await response.json()
+      if (response.success) {
         setReviews(reviews.map(review => 
-          review._id === editingReview._id ? updatedReview.data : review
+          review._id === editingReview._id ? response.data : review
         ))
         setShowEditForm(false)
         setEditingReview(null)

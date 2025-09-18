@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast, Toaster } from 'react-hot-toast';
+import apiService from '../../services/api.js';
 
 // This component is standalone and should not render navbar or footer
 const AdminLogin = () => {
@@ -30,21 +31,12 @@ const AdminLogin = () => {
       
       console.log('Login form submitted with:', credentials);
       
-      // Call backend API for authentication
-      const response = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(credentials),
-      });
+      // Call static API service for authentication
+      const data = await apiService.adminLogin(credentials);
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Login failed');
+      if (!data.success) {
+        throw new Error(data.message || 'Login failed');
       }
-      
-      const data = await response.json();
       
       // Store real token and admin data
       localStorage.setItem('adminToken', data.token);

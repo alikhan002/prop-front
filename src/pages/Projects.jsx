@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import apiService from '../services/api'
-import providerService from '../services/providerService'
 import { toast } from 'react-hot-toast'
 
 const Projects = () => {
@@ -32,13 +31,7 @@ const Projects = () => {
   const [selectedPropertyForNote, setSelectedPropertyForNote] = useState(null)
   const [userNote, setUserNote] = useState('')
 
-  // Provider data structure for external feeds
-  const [providerData, setProviderData] = useState({
-    behomes: [],
-    reallyAI: [],
-    lastSync: null,
-    syncStatus: 'idle' // idle, syncing, success, error
-  })
+
 
   const openPropertyDetail = (property) => {
     setSelectedProperty(property)
@@ -129,32 +122,14 @@ const Projects = () => {
         setLoading(true)
         setError(null)
         
-        // Fetch both local and provider data
-        const [localResponse, providerData] = await Promise.allSettled([
-          apiService.getProperties(),
-          providerService.fetchAllProviderData({
-            property_type: 'off-plan',
-            limit: 50
-          })
-        ])
+        // Fetch local static data
+        const response = await apiService.getProperties()
         
         let allProperties = []
         
         // Process local data
-        if (localResponse.status === 'fulfilled' && localResponse.value.success) {
-          allProperties = [...(localResponse.value.data || [])]
-        }
-        
-        // Process provider data
-        if (providerData.status === 'fulfilled') {
-          allProperties = [...allProperties, ...providerData.value]
-          
-          // Update provider data state for analytics
-          setProviderData({
-            total: providerData.value.length,
-            providers: providerService.getProviderStatus(),
-            lastUpdated: new Date().toISOString()
-          })
+        if (response.success) {
+          allProperties = [...(response.data || [])]
         }
         
         // Remove duplicates and set properties
@@ -198,15 +173,15 @@ const Projects = () => {
 
   const filteredProperties = Array.isArray(properties) ? properties.filter(property => {
     // Only show off-plan properties on this page
-    const offPlanMatch = property.type === 'off-plan'
-    const typeMatch = filter === 'all' || property.type === filter
+    const offPlanMatch = property.category === 'off-plan'
+    const typeMatch = filter === 'all' || property.category === filter
     const locationMatch = locationFilter === 'all' || property.location === locationFilter
     const projectMatch = projectFilter === 'all' || (property.projectName && property.projectName === projectFilter)
     const bedroomsMatch = bedroomsFilter === 'all' || property.bedrooms === parseInt(bedroomsFilter)
     const bathroomsMatch = bathroomsFilter === 'all' || property.bathrooms === parseInt(bathroomsFilter)
     const statusMatch = statusFilter === 'all' || 
-      (statusFilter === 'Ready Secondary' && property.type === 'exclusive') ||
-      (statusFilter === 'Offplan Secondary' && property.type === 'off-plan')
+      (statusFilter === 'Ready Secondary' && property.category === 'exclusive') ||
+      (statusFilter === 'Offplan Secondary' && property.category === 'off-plan')
     const offerTypeMatch = offerTypeFilter === 'all' || property.offerType === offerTypeFilter
     
     // New filter matches
@@ -326,7 +301,7 @@ const Projects = () => {
     <div className="min-h-screen bg-black">
       {/* Hero Section */}
       <section className="relative py-32 bg-gradient-to-br from-black via-gray-900 to-black overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/api/placeholder/1920/1080')] bg-cover bg-center opacity-10"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-gold-900/20 opacity-10"></div>
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-black/80"></div>
         
         <div className="container mx-auto px-4 relative z-10">
@@ -584,12 +559,7 @@ const Projects = () => {
                           {property.constructionStatus}
                         </span>
                       )}
-                      {/* Provider Badge */}
-                      {property.provider && (
-                        <span className="px-3 py-1 bg-gradient-to-r from-gold-600 to-yellow-500 text-black text-xs font-semibold rounded-full">
-                          {property.provider}
-                        </span>
-                      )}
+
                     </div>
 
                     {/* Action Buttons */}

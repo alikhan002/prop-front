@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import apiService from '../services/api.js'
 
 const About = () => {
   const [counters, setCounters] = useState({
@@ -40,15 +41,14 @@ const About = () => {
     return () => intervals.forEach(clearInterval)
   }, [])
 
-  // Fetch partners from admin panel
+  // Fetch partners from static data
   useEffect(() => {
     const fetchPartners = async () => {
       try {
         setPartnersLoading(true)
-        const response = await fetch('/api/partners?limit=1000')
-        if (response.ok) {
-          const result = await response.json()
-          const data = result.partners || []
+        const result = await apiService.getPartners()
+        if (result.success) {
+          const data = result.data || []
           // Filter active partners
           const activePartners = data.filter(partner => partner.status === 'active')
           setAllPartners(activePartners)

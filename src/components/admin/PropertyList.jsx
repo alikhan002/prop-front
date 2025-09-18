@@ -111,7 +111,7 @@ const PropertyList = ({ properties, onEdit, onDelete }) => {
                           src={property.image}
                           alt={property.title}
                           onError={(e) => {
-                            e.target.src = '/api/placeholder/48/48'
+                            e.target.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=48&h=48&fit=crop'
                           }}
                         />
                       ) : (

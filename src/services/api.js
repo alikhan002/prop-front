@@ -1,651 +1,661 @@
-const API_BASE_URL = '/api';
+// Static API service - returns static data instead of making HTTP requests
+import { properties, blogs, partners, reviews, contacts } from '../data/index.js';
 
-// API service for making HTTP requests
-class ApiService {
-  async request(endpoint, options = {}) {
-    if (!endpoint) {
-      console.error('Endpoint is undefined or null');
-      throw new Error('Invalid endpoint provided to API request');
-    }
-    
-    // Add cache-busting parameter to prevent browser caching
-    const cacheBuster = `_=${new Date().getTime()}`;
-    const separator = endpoint.includes('?') ? '&' : '?';
-    const url = `${API_BASE_URL}${endpoint}${separator}${cacheBuster}`;
-    
-    const config = {
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-        ...(options.headers || {}),
-      },
-      ...options,
+// Simulate API delay for realistic behavior
+const simulateDelay = (ms = 100) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Local storage keys for admin functionality
+const STORAGE_KEYS = {
+  PROPERTIES: 'amz_properties',
+  BLOGS: 'amz_blogs',
+  PARTNERS: 'amz_partners',
+  REVIEWS: 'amz_reviews',
+  CONTACTS: 'amz_contacts',
+  WISHLIST: 'amz_wishlist',
+  ADMIN_TOKEN: 'adminToken'
+};
+
+// Initialize local storage with static data if not exists
+const initializeLocalStorage = () => {
+  console.log('🚀 Initializing localStorage...');
+  console.log('📋 Imported properties:', properties);
+  console.log('📊 Properties count:', properties ? properties.length : 0);
+  
+  if (!localStorage.getItem(STORAGE_KEYS.PROPERTIES)) {
+    console.log('💾 Storing properties to localStorage...');
+    localStorage.setItem(STORAGE_KEYS.PROPERTIES, JSON.stringify(properties));
+  } else {
+    console.log('✅ Properties already exist in localStorage');
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.BLOGS)) {
+    localStorage.setItem(STORAGE_KEYS.BLOGS, JSON.stringify(blogs));
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.PARTNERS)) {
+    localStorage.setItem(STORAGE_KEYS.PARTNERS, JSON.stringify(partners));
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.REVIEWS)) {
+    localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(reviews));
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.CONTACTS)) {
+    localStorage.setItem(STORAGE_KEYS.CONTACTS, JSON.stringify(contacts));
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.WISHLIST)) {
+    localStorage.setItem(STORAGE_KEYS.WISHLIST, JSON.stringify([]));
+  }
+  
+  console.log('✅ localStorage initialization complete');
+};
+
+// Helper functions for local storage operations
+const getFromStorage = (key) => {
+  try {
+    const data = localStorage.getItem(key);
+    return data ? JSON.parse(data) : [];
+  } catch (error) {
+    console.error('Error reading from localStorage:', error);
+    return [];
+  }
+};
+
+const saveToStorage = (key, data) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (error) {
+    console.error('Error saving to localStorage:', error);
+  }
+};
+
+// Generate unique ID
+const generateId = () => Date.now().toString() + Math.random().toString(36).substr(2, 9);
+
+class StaticApiService {
+  constructor() {
+    initializeLocalStorage();
+  }
+
+  // Simulate API response format
+  createResponse(data, success = true, message = '') {
+    return {
+      success,
+      data,
+      message,
+      timestamp: new Date().toISOString()
     };
-    
-    // Don't set Content-Type for FormData - browser will handle it
-    if (options.body instanceof FormData) {
-      delete config.headers['Content-Type'];
-    } else if (!config.headers['Content-Type']) {
-      config.headers['Content-Type'] = 'application/json';
-    }
-
-    try {
-      console.log(`API Request to: ${url}`, config);
-      
-      // Check if server is available first
-      try {
-        const response = await fetch(url, config);
-        console.log(`API Response status: ${response.status}`);
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`HTTP error! status: ${response.status}, response:`, errorText);
-          let errorMessage = `HTTP error! status: ${response.status}`;
-          
-          // Try to parse error message from response if possible
-          try {
-            const errorJson = JSON.parse(errorText);
-            if (errorJson && errorJson.message) {
-              errorMessage = errorJson.message;
-            }
-          } catch (e) {
-            // If can't parse JSON, use the error text if it exists
-            if (errorText) {
-              errorMessage += ` - ${errorText}`;
-            }
-          }
-          
-          throw new Error(errorMessage);
-        }
-        
-        // Safely parse JSON response
-        const responseText = await response.text();
-        if (!responseText) {
-          console.warn('Empty response received');
-          return {};
-        }
-        
-        try {
-          return JSON.parse(responseText);
-        } catch (parseError) {
-          console.error('JSON parse error:', parseError, 'Response text:', responseText);
-          throw new Error('Invalid JSON response from server');
-        }
-      } catch (fetchError) {
-        if (fetchError.name === 'TypeError' && fetchError.message.includes('Failed to fetch')) {
-          console.error('Server connection error - backend may not be running');
-          throw new Error('Cannot connect to server. Please check if the backend is running.');
-        }
-        throw fetchError;
-      }
-    } catch (error) {
-      console.error('API request failed:', error);
-      throw error;
-    }
   }
 
   // Properties API methods
   async getProperties(filters = {}) {
-    const queryParams = new URLSearchParams();
+    await simulateDelay();
+    let propertiesData = getFromStorage(STORAGE_KEYS.PROPERTIES);
     
-    Object.keys(filters).forEach(key => {
-      if (filters[key] && filters[key] !== 'all') {
-        queryParams.append(key, filters[key]);
-      }
-    });
+    console.log('🔍 getProperties called with filters:', filters);
+    console.log('📦 Raw properties data from storage:', propertiesData);
+    console.log('📊 Properties count:', propertiesData ? propertiesData.length : 0);
     
-    const queryString = queryParams.toString();
-    const endpoint = `/properties${queryString ? `?${queryString}` : ''}`;
+    // Apply filters
+    if (filters.category && filters.category !== 'all') {
+      propertiesData = propertiesData.filter(p => p.category === filters.category);
+    }
+    if (filters.location && filters.location !== 'all') {
+      propertiesData = propertiesData.filter(p => p.location.toLowerCase().includes(filters.location.toLowerCase()));
+    }
+    if (filters.propertyType && filters.propertyType !== 'all') {
+      propertiesData = propertiesData.filter(p => p.propertyType === filters.propertyType);
+    }
+    if (filters.minPrice) {
+      propertiesData = propertiesData.filter(p => p.price >= parseInt(filters.minPrice));
+    }
+    if (filters.maxPrice) {
+      propertiesData = propertiesData.filter(p => p.price <= parseInt(filters.maxPrice));
+    }
     
-    return this.request(endpoint);
+    console.log('✅ Filtered properties data:', propertiesData);
+    console.log('📈 Final count:', propertiesData ? propertiesData.length : 0);
+    
+    return this.createResponse(propertiesData);
   }
 
   async getPropertyById(id) {
-    return this.request(`/properties/${id}`);
+    await simulateDelay();
+    const propertiesData = getFromStorage(STORAGE_KEYS.PROPERTIES);
+    const property = propertiesData.find(p => p._id === id || p.id === id);
+    
+    if (property) {
+      return this.createResponse(property);
+    } else {
+      throw new Error('Property not found');
+    }
   }
 
   async searchProperties(query) {
-    return this.request(`/properties/search?q=${encodeURIComponent(query)}`);
-  }
-  
-  async createProperty(propertyData, isFormData = false) {
-    try {
-      console.log('Creating property with data:', isFormData ? 'FormData object' : propertyData);
-      
-      const headers = {};
-      
-      // Don't set Content-Type for FormData (browser will set it with boundary)
-      if (!isFormData) {
-        headers['Content-Type'] = 'application/json';
-      }
-      
-      // Remove Content-Type from request options for FormData
-      const requestOptions = {
-        method: 'POST',
-        headers,
-        body: isFormData ? propertyData : JSON.stringify(propertyData),
-      };
-      
-      if (isFormData) {
-        delete requestOptions.headers['Content-Type'];
-      }
-      
-      const response = await this.request('/properties', requestOptions);
-      console.log('Create property response:', response);
-      return response;
-    } catch (error) {
-      console.error('Error in createProperty:', error);
-      return { success: false, message: error.message || 'Failed to create property' };
-    }
-  }
-  
-  async updateProperty(id, propertyData, isFormData = false) {
-    if (!id) {
-      console.error('No property ID provided for update');
-      return { success: false, message: 'No property ID provided' };
-    }
+    await simulateDelay();
+    const propertiesData = getFromStorage(STORAGE_KEYS.PROPERTIES);
+    const searchResults = propertiesData.filter(p => 
+      p.title.toLowerCase().includes(query.toLowerCase()) ||
+      p.description.toLowerCase().includes(query.toLowerCase()) ||
+      p.location.toLowerCase().includes(query.toLowerCase())
+    );
     
-    try {
-      console.log('Updating property with ID:', id);
-      console.log('Property data:', isFormData ? 'FormData object' : propertyData);
-      
-      const headers = {};
-      
-      // Don't set Content-Type for FormData (browser will set it with boundary)
-      if (!isFormData) {
-        headers['Content-Type'] = 'application/json';
-      }
-      
-      // Remove Content-Type from request options for FormData
-      const requestOptions = {
-        method: 'PUT',
-        headers,
-        body: isFormData ? propertyData : JSON.stringify(propertyData),
+    return this.createResponse(searchResults);
+  }
+
+  async createProperty(propertyData) {
+    await simulateDelay();
+    const propertiesData = getFromStorage(STORAGE_KEYS.PROPERTIES);
+    const newProperty = {
+      ...propertyData,
+      _id: generateId(),
+      id: generateId(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    propertiesData.push(newProperty);
+    saveToStorage(STORAGE_KEYS.PROPERTIES, propertiesData);
+    
+    return this.createResponse(newProperty, true, 'Property created successfully');
+  }
+
+  async updateProperty(id, propertyData) {
+    await simulateDelay();
+    const propertiesData = getFromStorage(STORAGE_KEYS.PROPERTIES);
+    const index = propertiesData.findIndex(p => p._id === id || p.id === id);
+    
+    if (index !== -1) {
+      propertiesData[index] = {
+        ...propertiesData[index],
+        ...propertyData,
+        updatedAt: new Date().toISOString()
       };
-      
-      if (isFormData) {
-        delete requestOptions.headers['Content-Type'];
-      }
-      
-      const response = await this.request(`/properties/${id}`, requestOptions);
-      console.log('Update property response:', response);
-      return response;
-    } catch (error) {
-      console.error('Error in updateProperty:', error);
-      return { success: false, message: error.message || 'Failed to update property' };
+      saveToStorage(STORAGE_KEYS.PROPERTIES, propertiesData);
+      return this.createResponse(propertiesData[index], true, 'Property updated successfully');
+    } else {
+      throw new Error('Property not found');
     }
   }
-  
+
   async deleteProperty(id) {
-    if (!id) {
-      console.error('No property ID provided for deletion');
-      return { success: false, message: 'No property ID provided' };
-    }
+    await simulateDelay();
+    const propertiesData = getFromStorage(STORAGE_KEYS.PROPERTIES);
+    const filteredProperties = propertiesData.filter(p => p._id !== id && p.id !== id);
     
-    try {
-      console.log('Deleting property with ID:', id);
-      const response = await this.request(`/properties/${id}`, {
-        method: 'DELETE'
-      });
-      console.log('Delete property response:', response);
-      return response;
-    } catch (error) {
-      console.error('Error in deleteProperty:', error);
-      return { success: false, message: error.message || 'Failed to delete property' };
+    if (filteredProperties.length < propertiesData.length) {
+      saveToStorage(STORAGE_KEYS.PROPERTIES, filteredProperties);
+      return this.createResponse(null, true, 'Property deleted successfully');
+    } else {
+      throw new Error('Property not found');
     }
   }
 
   // Contact API methods
   async submitContactForm(formData) {
-    return this.request('/contact', {
-      method: 'POST',
-      body: JSON.stringify(formData),
-    });
+    await simulateDelay();
+    const contactsData = getFromStorage(STORAGE_KEYS.CONTACTS);
+    const newContact = {
+      ...formData,
+      _id: generateId(),
+      id: generateId(),
+      status: 'new',
+      source: 'website',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    contactsData.push(newContact);
+    saveToStorage(STORAGE_KEYS.CONTACTS, contactsData);
+    
+    return this.createResponse(newContact, true, 'Contact form submitted successfully');
   }
 
   async getContactSubmissions() {
-    return this.request('/contact', {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-      }
-    });
+    await simulateDelay();
+    const contactsData = getFromStorage(STORAGE_KEYS.CONTACTS);
+    return this.createResponse(contactsData);
   }
-  
+
   async updateContact(id, contactData) {
-    if (!id) {
-      console.error('No contact ID provided for update');
-      return { success: false, message: 'No contact ID provided' };
-    }
+    await simulateDelay();
+    const contactsData = getFromStorage(STORAGE_KEYS.CONTACTS);
+    const index = contactsData.findIndex(c => c._id === id || c.id === id);
     
-    try {
-      console.log('Updating contact with ID:', id);
-      return this.request(`/contact/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-        },
-        body: JSON.stringify(contactData),
-      });
-    } catch (error) {
-      console.error('Error in updateContact:', error);
-      throw error;
+    if (index !== -1) {
+      contactsData[index] = {
+        ...contactsData[index],
+        ...contactData,
+        updatedAt: new Date().toISOString()
+      };
+      saveToStorage(STORAGE_KEYS.CONTACTS, contactsData);
+      return this.createResponse(contactsData[index], true, 'Contact updated successfully');
+    } else {
+      throw new Error('Contact not found');
     }
   }
-  
-  async updateContactStatus(id, status, isEdited = false) {
-    if (!id) {
-      console.error('No contact ID provided for status update');
-      return { success: false, message: 'No contact ID provided' };
-    }
-    
-    try {
-      console.log('Updating contact status with ID:', id);
-      return this.request(`/contact/${id}/status`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-        },
-        body: JSON.stringify({ status, isEdited }),
-      });
-    } catch (error) {
-      console.error('Error in updateContactStatus:', error);
-      throw error;
-    }
+
+  async updateContactStatus(id, status) {
+    return this.updateContact(id, { status });
   }
-  
+
   async deleteContact(id) {
-    if (!id) {
-      console.error('No contact ID provided for deletion');
-      return { success: false, message: 'No contact ID provided' };
+    await simulateDelay();
+    const contactsData = getFromStorage(STORAGE_KEYS.CONTACTS);
+    const filteredContacts = contactsData.filter(c => c._id !== id && c.id !== id);
+    
+    if (filteredContacts.length < contactsData.length) {
+      saveToStorage(STORAGE_KEYS.CONTACTS, filteredContacts);
+      return this.createResponse(null, true, 'Contact deleted successfully');
+    } else {
+      throw new Error('Contact not found');
     }
-    
-    try {
-      console.log('Deleting contact with ID:', id);
-      return this.request(`/contact/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-        }
-      });
-    } catch (error) {
-      console.error('Error in deleteContact:', error);
-      throw error;
-    }
-  }
-
-  // Posts API methods
-  async getPosts(filters = {}) {
-    const queryParams = new URLSearchParams();
-    
-    Object.keys(filters).forEach(key => {
-      if (filters[key] && filters[key] !== 'all') {
-        queryParams.append(key, filters[key]);
-      }
-    });
-    
-    const queryString = queryParams.toString();
-    const endpoint = `/posts${queryString ? `?${queryString}` : ''}`;
-    
-    return this.request(endpoint);
-  }
-
-  async getPostBySlug(slug) {
-    return this.request(`/posts/${slug}`);
-  }
-
-  async getAdminPosts(filters = {}) {
-    const queryParams = new URLSearchParams();
-    
-    Object.keys(filters).forEach(key => {
-      if (filters[key] !== undefined && filters[key] !== 'all') {
-        queryParams.append(key, filters[key]);
-      }
-    });
-    
-    const queryString = queryParams.toString();
-    // Make sure we're using the correct endpoint path
-    const endpoint = `/posts/admin/all${queryString ? `?${queryString}` : ''}`;
-    
-    console.log('Fetching admin posts with endpoint:', endpoint);
-    const adminToken = localStorage.getItem('adminToken');
-    console.log('Admin token available:', !!adminToken);
-    
-    try {
-      const result = await this.request(endpoint, {
-        headers: {
-          'Authorization': `Bearer ${adminToken}`
-        }
-      });
-      console.log('Admin posts API response:', result);
-      return result;
-    } catch (error) {
-      console.error('Error fetching admin posts:', error);
-      throw error;
-    }
-  }
-
-  async createPost(postData) {
-    console.log('API Service: Creating post with data:', postData);
-    return this.request('/posts/admin', {
-      method: 'POST',
-      body: JSON.stringify(postData),
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-      }
-    });
-  }
-
-  async updatePost(id, postData) {
-    console.log('API Service: Updating post with ID:', id, 'Data:', postData);
-    return this.request(`/posts/admin/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(postData),
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-      }
-    });
-  }
-
-  async deletePost(id) {
-    return this.request(`/posts/admin/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-      }
-    });
-  }
-
-  async getPostForEdit(id) {
-    return this.request(`/posts/admin/edit/${id}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-      }
-    });
   }
 
   // Blog API methods
   async getBlogs(filters = {}) {
-    const queryParams = new URLSearchParams();
+    await simulateDelay();
+    let blogsData = getFromStorage(STORAGE_KEYS.BLOGS);
     
-    Object.keys(filters).forEach(key => {
-      if (filters[key] && filters[key] !== 'all') {
-        queryParams.append(key, filters[key]);
-      }
-    });
-    
-    const queryString = queryParams.toString();
-    const endpoint = `/blogs${queryString ? `?${queryString}` : ''}`;
-    
-    // Check if admin token exists to include authentication
-    const token = localStorage.getItem('adminToken');
-    const options = {};
-    
-    if (token) {
-      options.headers = {
-        'Authorization': `Bearer ${token}`
-      };
+    // Apply filters
+    if (filters.status && filters.status !== 'all') {
+      blogsData = blogsData.filter(b => b.status === filters.status);
+    }
+    if (filters.category && filters.category !== 'all') {
+      blogsData = blogsData.filter(b => b.category === filters.category);
+    }
+    if (filters.limit) {
+      blogsData = blogsData.slice(0, parseInt(filters.limit));
     }
     
-    return this.request(endpoint, options);
+    return { blogs: blogsData, success: true };
   }
 
   async getBlogById(id) {
-    if (!id) {
-      throw new Error('Blog ID is required');
+    await simulateDelay();
+    const blogsData = getFromStorage(STORAGE_KEYS.BLOGS);
+    const blog = blogsData.find(b => b._id === id || b.id === id);
+    
+    if (blog) {
+      return this.createResponse(blog);
+    } else {
+      throw new Error('Blog not found');
     }
-    return this.request(`/blogs/${id}`);
+  }
+
+  async getBlogBySlug(slug) {
+    await simulateDelay();
+    const blogsData = getFromStorage(STORAGE_KEYS.BLOGS);
+    const blog = blogsData.find(b => b.slug === slug);
+    
+    if (blog) {
+      return this.createResponse(blog);
+    } else {
+      throw new Error('Blog not found');
+    }
   }
 
   async createBlog(blogData) {
-    const headers = {
-      'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+    await simulateDelay();
+    const blogsData = getFromStorage(STORAGE_KEYS.BLOGS);
+    const newBlog = {
+      ...blogData,
+      _id: generateId(),
+      id: generateId(),
+      slug: blogData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      publishedAt: blogData.status === 'published' ? new Date().toISOString() : null
     };
     
-    const requestOptions = {
-      method: 'POST',
-      headers
-    };
+    blogsData.push(newBlog);
+    saveToStorage(STORAGE_KEYS.BLOGS, blogsData);
     
-    if (blogData instanceof FormData) {
-      requestOptions.body = blogData;
-    } else {
-      headers['Content-Type'] = 'application/json';
-      requestOptions.body = JSON.stringify(blogData);
-    }
-    
-    return this.request('/blogs', requestOptions);
+    return this.createResponse(newBlog, true, 'Blog created successfully');
   }
 
   async updateBlog(id, blogData) {
-    if (!id) {
-      throw new Error('Blog ID is required');
-    }
+    await simulateDelay();
+    const blogsData = getFromStorage(STORAGE_KEYS.BLOGS);
+    const index = blogsData.findIndex(b => b._id === id || b.id === id);
     
-    const headers = {
-      'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-    };
-    
-    const requestOptions = {
-      method: 'PUT',
-      headers
-    };
-    
-    if (blogData instanceof FormData) {
-      requestOptions.body = blogData;
+    if (index !== -1) {
+      blogsData[index] = {
+        ...blogsData[index],
+        ...blogData,
+        updatedAt: new Date().toISOString()
+      };
+      saveToStorage(STORAGE_KEYS.BLOGS, blogsData);
+      return this.createResponse(blogsData[index], true, 'Blog updated successfully');
     } else {
-      headers['Content-Type'] = 'application/json';
-      requestOptions.body = JSON.stringify(blogData);
+      throw new Error('Blog not found');
     }
-    
-    return this.request(`/blogs/${id}`, requestOptions);
   }
 
   async deleteBlog(id) {
-    if (!id) {
-      throw new Error('Blog ID is required');
-    }
+    await simulateDelay();
+    const blogsData = getFromStorage(STORAGE_KEYS.BLOGS);
+    const filteredBlogs = blogsData.filter(b => b._id !== id && b.id !== id);
     
-    return this.request(`/blogs/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-      }
-    });
+    if (filteredBlogs.length < blogsData.length) {
+      saveToStorage(STORAGE_KEYS.BLOGS, filteredBlogs);
+      return this.createResponse(null, true, 'Blog deleted successfully');
+    } else {
+      throw new Error('Blog not found');
+    }
   }
 
-  // Partner API methods
+  // Partners API methods
   async getPartners(filters = {}) {
-    const queryParams = new URLSearchParams();
+    await simulateDelay();
+    let partnersData = getFromStorage(STORAGE_KEYS.PARTNERS);
     
-    Object.keys(filters).forEach(key => {
-      if (filters[key] && filters[key] !== 'all') {
-        queryParams.append(key, filters[key]);
-      }
-    });
-    
-    const queryString = queryParams.toString();
-    const endpoint = `/partners${queryString ? `?${queryString}` : ''}`;
-    
-    // Check if admin token exists to include authentication
-    const token = localStorage.getItem('adminToken');
-    const options = {};
-    
-    if (token) {
-      options.headers = {
-        'Authorization': `Bearer ${token}`
-      };
+    // Apply filters
+    if (filters.status && filters.status !== 'all') {
+      partnersData = partnersData.filter(p => p.status === filters.status);
+    }
+    if (filters.limit) {
+      partnersData = partnersData.slice(0, parseInt(filters.limit));
     }
     
-    return this.request(endpoint, options);
+    return { partners: partnersData, success: true };
   }
 
   async getPartnerById(id) {
-    if (!id) {
-      throw new Error('Partner ID is required');
+    await simulateDelay();
+    const partnersData = getFromStorage(STORAGE_KEYS.PARTNERS);
+    const partner = partnersData.find(p => p._id === id || p.id === id);
+    
+    if (partner) {
+      return this.createResponse(partner);
+    } else {
+      throw new Error('Partner not found');
     }
-    return this.request(`/partners/${id}`);
   }
 
   async createPartner(partnerData) {
-    const token = localStorage.getItem('adminToken');
-    console.log('API Service - createPartner called');
-    console.log('Token available:', !!token);
-    console.log('Token value:', token ? token.substring(0, 20) + '...' : 'No token');
-    
-    const requestOptions = {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      },
-      body: partnerData instanceof FormData ? partnerData : JSON.stringify(partnerData)
+    await simulateDelay();
+    const partnersData = getFromStorage(STORAGE_KEYS.PARTNERS);
+    const newPartner = {
+      ...partnerData,
+      _id: generateId(),
+      id: generateId(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
     
-    if (!(partnerData instanceof FormData)) {
-      requestOptions.headers['Content-Type'] = 'application/json';
-    }
+    partnersData.push(newPartner);
+    saveToStorage(STORAGE_KEYS.PARTNERS, partnersData);
     
-    console.log('Request options:', { ...requestOptions, body: 'FormData/JSON content' });
-    return this.request('/partners', requestOptions);
+    return this.createResponse(newPartner, true, 'Partner created successfully');
   }
 
   async updatePartner(id, partnerData) {
-    if (!id) {
-      throw new Error('Partner ID is required for update');
+    await simulateDelay();
+    const partnersData = getFromStorage(STORAGE_KEYS.PARTNERS);
+    const index = partnersData.findIndex(p => p._id === id || p.id === id);
+    
+    if (index !== -1) {
+      partnersData[index] = {
+        ...partnersData[index],
+        ...partnerData,
+        updatedAt: new Date().toISOString()
+      };
+      saveToStorage(STORAGE_KEYS.PARTNERS, partnersData);
+      return this.createResponse(partnersData[index], true, 'Partner updated successfully');
+    } else {
+      throw new Error('Partner not found');
     }
-    
-    const requestOptions = {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-      },
-      body: partnerData instanceof FormData ? partnerData : JSON.stringify(partnerData)
-    };
-    
-    if (!(partnerData instanceof FormData)) {
-      requestOptions.headers['Content-Type'] = 'application/json';
-    }
-    
-    return this.request(`/partners/${id}`, requestOptions);
   }
 
   async deletePartner(id) {
-    if (!id) {
-      throw new Error('Partner ID is required for deletion');
+    await simulateDelay();
+    const partnersData = getFromStorage(STORAGE_KEYS.PARTNERS);
+    const filteredPartners = partnersData.filter(p => p._id !== id && p.id !== id);
+    
+    if (filteredPartners.length < partnersData.length) {
+      saveToStorage(STORAGE_KEYS.PARTNERS, filteredPartners);
+      return this.createResponse(null, true, 'Partner deleted successfully');
+    } else {
+      throw new Error('Partner not found');
+    }
+  }
+
+  // Reviews API methods
+  async getReviews(filters = {}) {
+    await simulateDelay();
+    let reviewsData = getFromStorage(STORAGE_KEYS.REVIEWS);
+    
+    // Apply filters
+    if (filters.status && filters.status !== 'all') {
+      reviewsData = reviewsData.filter(r => r.status === filters.status);
+    }
+    if (filters.limit) {
+      reviewsData = reviewsData.slice(0, parseInt(filters.limit));
     }
     
-    try {
-      const response = await this.request(`/partners/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-        }
-      });
-      
-      // Return consistent format
-      return {
-        success: true,
-        message: response.message || 'Partner deleted successfully'
+    return { data: reviewsData, success: true };
+  }
+
+  async createReview(reviewData) {
+    await simulateDelay();
+    const reviewsData = getFromStorage(STORAGE_KEYS.REVIEWS);
+    const newReview = {
+      ...reviewData,
+      _id: generateId(),
+      id: generateId(),
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    reviewsData.push(newReview);
+    saveToStorage(STORAGE_KEYS.REVIEWS, reviewsData);
+    
+    return this.createResponse(newReview, true, 'Review submitted successfully');
+  }
+
+  async updateReviewStatus(id, status) {
+    await simulateDelay();
+    const reviewsData = getFromStorage(STORAGE_KEYS.REVIEWS);
+    const index = reviewsData.findIndex(r => r._id === id || r.id === id);
+    
+    if (index !== -1) {
+      reviewsData[index] = {
+        ...reviewsData[index],
+        status,
+        updatedAt: new Date().toISOString(),
+        approvedAt: status === 'approved' ? new Date().toISOString() : null
       };
-    } catch (error) {
-      console.error('Delete partner error:', error);
-      return {
-        success: false,
-        message: error.message || 'Failed to delete partner'
+      saveToStorage(STORAGE_KEYS.REVIEWS, reviewsData);
+      return this.createResponse(reviewsData[index], true, 'Review status updated successfully');
+    } else {
+      throw new Error('Review not found');
+    }
+  }
+
+  async updateReview(id, reviewData) {
+    await simulateDelay();
+    const reviewsData = getFromStorage(STORAGE_KEYS.REVIEWS);
+    const index = reviewsData.findIndex(r => r._id === id || r.id === id);
+    
+    if (index !== -1) {
+      reviewsData[index] = {
+        ...reviewsData[index],
+        ...reviewData,
+        updatedAt: new Date().toISOString()
       };
+      saveToStorage(STORAGE_KEYS.REVIEWS, reviewsData);
+      return this.createResponse(reviewsData[index], true, 'Review updated successfully');
+    } else {
+      throw new Error('Review not found');
+    }
+  }
+
+  async deleteReview(id) {
+    await simulateDelay();
+    const reviewsData = getFromStorage(STORAGE_KEYS.REVIEWS);
+    const filteredReviews = reviewsData.filter(r => r._id !== id && r.id !== id);
+    
+    if (filteredReviews.length < reviewsData.length) {
+      saveToStorage(STORAGE_KEYS.REVIEWS, filteredReviews);
+      return this.createResponse(null, true, 'Review deleted successfully');
+    } else {
+      throw new Error('Review not found');
+    }
+  }
+
+  // Wishlist API methods
+  async getWishlist() {
+    await simulateDelay();
+    const wishlistData = getFromStorage(STORAGE_KEYS.WISHLIST);
+    return this.createResponse(wishlistData);
+  }
+
+  async addToWishlist(propertyId, userNote = '') {
+    await simulateDelay();
+    const wishlistData = getFromStorage(STORAGE_KEYS.WISHLIST);
+    const propertiesData = getFromStorage(STORAGE_KEYS.PROPERTIES);
+    
+    const property = propertiesData.find(p => p._id === propertyId || p.id === propertyId);
+    if (!property) {
+      throw new Error('Property not found');
+    }
+    
+    const existingItem = wishlistData.find(item => item.propertyId === propertyId);
+    if (existingItem) {
+      throw new Error('Property already in wishlist');
+    }
+    
+    const newWishlistItem = {
+      _id: generateId(),
+      propertyId,
+      property,
+      userNote,
+      createdAt: new Date().toISOString()
+    };
+    
+    wishlistData.push(newWishlistItem);
+    saveToStorage(STORAGE_KEYS.WISHLIST, wishlistData);
+    
+    return this.createResponse(newWishlistItem, true, 'Property added to wishlist');
+  }
+
+  async removeFromWishlist(propertyId) {
+    await simulateDelay();
+    const wishlistData = getFromStorage(STORAGE_KEYS.WISHLIST);
+    const filteredWishlist = wishlistData.filter(item => item.propertyId !== propertyId);
+    
+    if (filteredWishlist.length < wishlistData.length) {
+      saveToStorage(STORAGE_KEYS.WISHLIST, filteredWishlist);
+      return this.createResponse(null, true, 'Property removed from wishlist');
+    } else {
+      throw new Error('Property not found in wishlist');
+    }
+  }
+
+  async checkWishlistStatus(propertyId) {
+    await simulateDelay();
+    const wishlistData = getFromStorage(STORAGE_KEYS.WISHLIST);
+    const isInWishlist = wishlistData.some(item => item.propertyId === propertyId);
+    return this.createResponse({ isInWishlist });
+  }
+
+  async updateWishlistNote(propertyId, userNote) {
+    await simulateDelay();
+    const wishlistData = getFromStorage(STORAGE_KEYS.WISHLIST);
+    const index = wishlistData.findIndex(item => item.propertyId === propertyId);
+    
+    if (index !== -1) {
+      wishlistData[index].userNote = userNote;
+      saveToStorage(STORAGE_KEYS.WISHLIST, wishlistData);
+      return this.createResponse(wishlistData[index], true, 'Wishlist note updated');
+    } else {
+      throw new Error('Property not found in wishlist');
+    }
+  }
+
+  async getAdminWishlist() {
+    return this.getWishlist();
+  }
+
+  async deleteWishlistItem(itemId) {
+    await simulateDelay();
+    const wishlistData = getFromStorage(STORAGE_KEYS.WISHLIST);
+    const filteredWishlist = wishlistData.filter(item => item._id !== itemId);
+    
+    if (filteredWishlist.length < wishlistData.length) {
+      saveToStorage(STORAGE_KEYS.WISHLIST, filteredWishlist);
+      return this.createResponse(null, true, 'Wishlist item deleted');
+    } else {
+      throw new Error('Wishlist item not found');
+    }
+  }
+
+  async updateWishlistItemNote(itemId, userNote) {
+    await simulateDelay();
+    const wishlistData = getFromStorage(STORAGE_KEYS.WISHLIST);
+    const index = wishlistData.findIndex(item => item._id === itemId);
+    
+    if (index !== -1) {
+      wishlistData[index].userNote = userNote;
+      saveToStorage(STORAGE_KEYS.WISHLIST, wishlistData);
+      return this.createResponse(wishlistData[index], true, 'Wishlist note updated');
+    } else {
+      throw new Error('Wishlist item not found');
+    }
+  }
+
+  // Admin authentication
+  async adminLogin(credentials) {
+    await simulateDelay();
+    // Simple static authentication - in a real app, this would be more secure
+    if (credentials.username === 'admin' && credentials.password === 'admin123') {
+      const token = 'static-admin-token-' + Date.now();
+      localStorage.setItem(STORAGE_KEYS.ADMIN_TOKEN, token);
+      return this.createResponse({ token, user: { username: 'admin', role: 'admin' } }, true, 'Login successful');
+    } else {
+      throw new Error('Invalid credentials');
     }
   }
 
   // Health check
   async healthCheck() {
-    return this.request('/health');
+    await simulateDelay();
+    return this.createResponse({ status: 'healthy', mode: 'static' }, true, 'Static API service is running');
   }
 
-  // Wishlist API methods
-  async getWishlist() {
-    return this.request('/wishlist');
+  // Legacy method aliases for backward compatibility
+  async getPosts(filters = {}) {
+    return this.getBlogs(filters);
   }
 
-  async addToWishlist(propertyId, userNote = '') {
-    return this.request('/wishlist', {
-      method: 'POST',
-      body: JSON.stringify({ propertyId, userNote }),
-    });
+  async getPostBySlug(slug) {
+    return this.getBlogBySlug(slug);
   }
 
-  async removeFromWishlist(propertyId) {
-    return this.request(`/wishlist/${propertyId}`, {
-      method: 'DELETE',
-    });
+  async getAdminPosts(filters = {}) {
+    return this.getBlogs(filters);
   }
 
-  async checkWishlistStatus(propertyId) {
-    return this.request(`/wishlist/check/${propertyId}`);
+  async createPost(postData) {
+    return this.createBlog(postData);
   }
 
-  async updateWishlistNote(propertyId, userNote) {
-    return this.request(`/wishlist/${propertyId}/note`, {
-      method: 'PUT',
-      body: JSON.stringify({ userNote })
-    });
+  async updatePost(id, postData) {
+    return this.updateBlog(id, postData);
   }
 
-  // Admin wishlist methods
-  async getAdminWishlist() {
-    return this.request('/admin/wishlist', {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-      }
-    });
+  async deletePost(id) {
+    return this.deleteBlog(id);
   }
 
-  async deleteWishlistItem(itemId) {
-    return this.request(`/admin/wishlist/${itemId}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-      }
-    });
-  }
-
-  async updateWishlistItemNote(itemId, userNote) {
-    return this.request(`/admin/wishlist/${itemId}/note`, {
-      method: 'PUT',
-      body: JSON.stringify({ userNote }),
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-      }
-    });
-  }
-
-  // Admin API methods
-  async adminLogin(credentials) {
-    if (!credentials || typeof credentials !== 'object') {
-      console.error('Invalid credentials provided:', credentials);
-      throw new Error('Invalid credentials format');
-    }
-    
-    console.log('Attempting login with credentials:', credentials);
-    try {
-      const response = await this.request('/admin/login', {
-        method: 'POST',
-        body: JSON.stringify(credentials)
-      });
-      console.log('Login response:', response);
-      return response;
-    } catch (error) {
-      console.error('Login API error:', error);
-      throw error;
-    }
+  async getPostForEdit(id) {
+    return this.getBlogById(id);
   }
 }
 
-// Create and export a singleton instance
-const apiService = new ApiService();
+const apiService = new StaticApiService();
 export default apiService;
 export { apiService };
 
-// Export individual methods for convenience
+// Export individual methods for backward compatibility
 export const {
   getProperties,
   getPropertyById,
@@ -672,6 +682,11 @@ export const {
   createPartner,
   updatePartner,
   deletePartner,
+  getReviews,
+  createReview,
+  updateReview,
+  updateReviewStatus,
+  deleteReview,
   getWishlist,
   addToWishlist,
   removeFromWishlist,

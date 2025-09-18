@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { FaMapMarkerAlt, FaPhone, FaEnvelope, FaGlobe, FaBuilding, FaAward, FaUsers, FaCalendarAlt } from 'react-icons/fa'
+import apiService from '../services/api.js'
 
 const PartnerDetail = () => {
   const { id } = useParams()
@@ -210,10 +211,9 @@ const PartnerDetail = () => {
             setPartner(transformedPartner)
             
             // Fetch other partners for related section
-            const partnersResponse = await fetch('/api/partners?limit=1000')
-            if (partnersResponse.ok) {
-              const partnersResult = await partnersResponse.json()
-              const allPartners = partnersResult.success ? partnersResult.data : partnersResult
+            const partnersResult = await apiService.getPartners()
+            if (partnersResult.success) {
+              const allPartners = partnersResult.data
               const related = allPartners
                 .filter(p => p._id !== id && p.status === 'active')
                 .slice(0, 2)

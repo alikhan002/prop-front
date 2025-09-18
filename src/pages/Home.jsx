@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import apiService from '../services/api.js'
 // Using Unicode symbols instead of react-icons for now
 
 const Home = () => {
@@ -58,12 +59,12 @@ const Home = () => {
 
   // Partner Developers Data
   const staticPartnerDevelopers = [
-    { id: 1, name: 'Emaar Properties', logo: 'https://via.placeholder.com/200x100/d97706/000000?text=EMAAR', projects: 25 },
-    { id: 2, name: 'Dubai Properties', logo: 'https://via.placeholder.com/200x100/d97706/000000?text=DUBAI+PROP', projects: 18 },
-    { id: 3, name: 'Damac Properties', logo: 'https://via.placeholder.com/200x100/d97706/000000?text=DAMAC', projects: 22 },
-    { id: 4, name: 'Sobha Realty', logo: 'https://via.placeholder.com/200x100/d97706/000000?text=SOBHA', projects: 15 },
-    { id: 5, name: 'Meraas', logo: 'https://via.placeholder.com/200x100/d97706/000000?text=MERAAS', projects: 12 },
-    { id: 6, name: 'Nakheel', logo: 'https://via.placeholder.com/200x100/d97706/000000?text=NAKHEEL', projects: 20 }
+    { id: 1, name: 'Emaar Properties', logo: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=200&h=100&fit=crop&crop=center', projects: 25 },
+    { id: 2, name: 'Dubai Properties', logo: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=200&h=100&fit=crop&crop=center', projects: 18 },
+    { id: 3, name: 'Damac Properties', logo: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=200&h=100&fit=crop&crop=center', projects: 22 },
+    { id: 4, name: 'Sobha Realty', logo: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=200&h=100&fit=crop&crop=center', projects: 15 },
+    { id: 5, name: 'Meraas', logo: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=200&h=100&fit=crop&crop=center', projects: 12 },
+    { id: 6, name: 'Nakheel', logo: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=200&h=100&fit=crop&crop=center', projects: 20 }
   ]
 
   // Services Data
@@ -185,16 +186,15 @@ const Home = () => {
   // Fetch approved reviews from API
   const fetchApprovedReviews = async () => {
     try {
-      const response = await fetch('/api/reviews?status=approved&limit=10')
-      if (response.ok) {
-        const data = await response.json()
+      const data = await apiService.getReviews({ status: 'approved', limit: 10 })
+      if (data.success && data.data) {
         const apiReviews = data.data.map(review => ({
           id: review._id,
           name: review.name,
           role: review.title || 'Valued Client',
           text: review.message,
           rating: review.rating,
-          image: '/api/placeholder/64/64' // Placeholder image
+          image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=64&h=64&fit=crop&crop=face' // Default avatar
         }))
         
         // Combine API reviews with static testimonials as fallback
@@ -238,27 +238,22 @@ const Home = () => {
   // Fetch partners from API
   const fetchPartners = async () => {
     try {
-      const response = await fetch('/api/partners?limit=1000')
-      if (response.ok) {
-        const result = await response.json()
-        const data = result.partners || []
-        if (Array.isArray(data) && data.length > 0) {
-          // Transform API data to match frontend format
-          const transformedPartners = data
-            .filter(partner => partner.status === 'active')
-            .map(partner => ({
-              id: partner._id,
-              name: partner.name,
-              logo: partner.logo || 'https://via.placeholder.com/200x100/d97706/000000?text=' + partner.name.replace(/\s+/g, '+'),
-              projects: partner.totalProjects || 0,
-              description: partner.description
-            }))
-          setPartnerDevelopers(transformedPartners)
-        } else {
-          // Fallback to static data if no partners found
-          setPartnerDevelopers(staticPartnerDevelopers)
-        }
+      const result = await apiService.getPartners({ limit: 1000 })
+      const data = result.partners || []
+      if (Array.isArray(data) && data.length > 0) {
+        // Transform API data to match frontend format
+        const transformedPartners = data
+          .filter(partner => partner.status === 'active')
+          .map(partner => ({
+            id: partner._id,
+            name: partner.name,
+            logo: partner.logo || 'https://via.placeholder.com/200x100/d97706/000000?text=' + partner.name.replace(/\s+/g, '+'),
+            projects: partner.totalProjects || 0,
+            description: partner.description
+          }))
+        setPartnerDevelopers(transformedPartners)
       } else {
+        // Fallback to static data if no partners found
         setPartnerDevelopers(staticPartnerDevelopers)
       }
     } catch (error) {
@@ -271,17 +266,10 @@ const Home = () => {
   // Fetch blogs from API
   const fetchBlogs = async () => {
     try {
-      const response = await fetch(`/api/blogs?status=published&limit=1000&_=${Date.now()}`)
-      if (response.ok) {
-        const result = await response.json()
-        if (result.blogs && Array.isArray(result.blogs)) {
-          setAllBlogs(result.blogs)
-          setBlogPosts(result.blogs.slice(0, 3))
-        } else {
-          // Fallback to static data if API fails
-          setAllBlogs(staticBlogPosts)
-          setBlogPosts(staticBlogPosts.slice(0, 3))
-        }
+      const result = await apiService.getBlogs({ status: 'published', limit: 1000 })
+      if (result.blogs && Array.isArray(result.blogs)) {
+        setAllBlogs(result.blogs)
+        setBlogPosts(result.blogs.slice(0, 3))
       } else {
         // Fallback to static data if API fails
         setAllBlogs(staticBlogPosts)
@@ -379,29 +367,24 @@ const Home = () => {
     }
   }, [testimonials])
 
-  // Fetch properties from API
+  // Fetch properties from static API service
   useEffect(() => {
     const fetchProperties = async () => {
       try {
-        // Add cache-busting parameter to prevent browser caching
-        const response = await fetch(`/api/properties?_=${new Date().getTime()}`)
-        if (response.ok) {
-          const result = await response.json()
-          const data = result.success ? result.data : result
-          if (Array.isArray(data)) {
-            const exclusive = data.filter(property => property.type === 'exclusive')
-            const offPlan = data.filter(property => property.type === 'off-plan')
-            setAllExclusiveProperties(exclusive)
-            setAllOffPlanProperties(offPlan)
-            setExclusiveProperties(exclusive.slice(0, 3))
-            setOffPlanProperties(offPlan.slice(0, 3))
-          } else {
-            // Fallback to static data if data is not an array
-            setAllExclusiveProperties(staticExclusiveProperties)
-            setAllOffPlanProperties(staticOffPlanProperties)
-            setExclusiveProperties(staticExclusiveProperties.slice(0, 3))
-            setOffPlanProperties(staticOffPlanProperties.slice(0, 3))
-          }
+        const result = await apiService.getProperties()
+        if (result.success && Array.isArray(result.data)) {
+          const exclusive = result.data.filter(property => property.type === 'exclusive')
+          const offPlan = result.data.filter(property => property.type === 'off-plan')
+          setAllExclusiveProperties(exclusive)
+          setAllOffPlanProperties(offPlan)
+          setExclusiveProperties(exclusive.slice(0, 3))
+          setOffPlanProperties(offPlan.slice(0, 3))
+        } else {
+          // Fallback to static data if data is not an array
+          setAllExclusiveProperties(staticExclusiveProperties)
+          setAllOffPlanProperties(staticOffPlanProperties)
+          setExclusiveProperties(staticExclusiveProperties.slice(0, 3))
+          setOffPlanProperties(staticOffPlanProperties.slice(0, 3))
         }
       } catch (error) {
         console.error('Error fetching properties:', error)
@@ -425,12 +408,8 @@ const Home = () => {
   const handleFormSubmit = async (e) => {
     e.preventDefault()
     try {
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      })
-      if (response.ok) {
+      const result = await apiService.submitContactForm(formData)
+      if (result.success) {
         alert('Message sent successfully!')
         setFormData({ name: '', email: '', phone: '', countryCode: '+971', message: '' })
       }
@@ -486,18 +465,11 @@ const Home = () => {
     setReviewMessage(null)
 
     try {
-      console.log('Making API request to /api/reviews')
-      const response = await fetch('/api/reviews', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(reviewForm)
-      })
-
-      console.log('API response status:', response.status)
-      const data = await response.json()
+      console.log('Submitting review via static API service')
+      const data = await apiService.submitReview(reviewForm)
       console.log('API response data:', data)
 
-      if (response.ok) {
+      if (data.success) {
         console.log('Review submitted successfully')
         setReviewMessage({
           type: 'success',
@@ -796,11 +768,24 @@ const Home = () => {
                   onClick={() => handleDeveloperClick(developer.id)}
                   className="flex-shrink-0 mx-8 luxury-card p-6 text-center cursor-pointer group hover:scale-105 transition-all duration-300 w-48"
                 >
-                  <img 
-                    src={developer.logo} 
-                    alt={developer.name}
-                    className="w-full h-12 object-contain mb-4 group-hover:brightness-110 group-hover:scale-110 transition-all duration-300"
-                  />
+                  <div className="relative w-full h-20 mb-4 rounded-lg overflow-hidden bg-gradient-to-br from-gold-600/20 to-gold-400/20 flex items-center justify-center">
+                    <img 
+                      src={developer.logo} 
+                      alt={developer.name}
+                      className="w-full h-full object-cover group-hover:brightness-110 group-hover:scale-110 transition-all duration-300"
+                      onLoad={(e) => {
+                        e.target.parentElement.classList.remove('bg-gradient-to-br', 'from-gold-600/20', 'to-gold-400/20');
+                      }}
+                      onError={(e) => {
+                        console.log('Image failed to load:', developer.logo);
+                        e.target.style.display = 'none';
+                        const fallback = document.createElement('div');
+                        fallback.className = 'text-gold-400 text-xs font-semibold';
+                        fallback.textContent = developer.name;
+                        e.target.parentElement.appendChild(fallback);
+                      }}
+                    />
+                  </div>
                   <h3 className="text-white font-semibold text-sm mb-2">{developer.name}</h3>
                   <p className="text-gold-400 text-xs">{developer.projects} Projects</p>
                 </div>
@@ -812,11 +797,24 @@ const Home = () => {
                   onClick={() => handleDeveloperClick(developer.id)}
                   className="flex-shrink-0 mx-8 luxury-card p-6 text-center cursor-pointer group hover:scale-105 transition-all duration-300 w-48"
                 >
-                  <img 
-                    src={developer.logo} 
-                    alt={developer.name}
-                    className="w-full h-12 object-contain mb-4 group-hover:brightness-110 group-hover:scale-110 transition-all duration-300"
-                  />
+                  <div className="relative w-full h-20 mb-4 rounded-lg overflow-hidden bg-gradient-to-br from-gold-600/20 to-gold-400/20 flex items-center justify-center">
+                    <img 
+                      src={developer.logo} 
+                      alt={developer.name}
+                      className="w-full h-full object-cover group-hover:brightness-110 group-hover:scale-110 transition-all duration-300"
+                      onLoad={(e) => {
+                        e.target.parentElement.classList.remove('bg-gradient-to-br', 'from-gold-600/20', 'to-gold-400/20');
+                      }}
+                      onError={(e) => {
+                        console.log('Image failed to load:', developer.logo);
+                        e.target.style.display = 'none';
+                        const fallback = document.createElement('div');
+                        fallback.className = 'text-gold-400 text-xs font-semibold';
+                        fallback.textContent = developer.name;
+                        e.target.parentElement.appendChild(fallback);
+                      }}
+                    />
+                  </div>
                   <h3 className="text-white font-semibold text-sm mb-2">{developer.name}</h3>
                   <p className="text-gold-400 text-xs">{developer.projects} Projects</p>
                 </div>

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import apiService from '../services/api'
-import providerService from '../services/providerService'
 
 const Properties = () => {
   const [filter, setFilter] = useState('all')
@@ -28,12 +27,7 @@ const Properties = () => {
   const [selectedPropertyForNote, setSelectedPropertyForNote] = useState(null)
   const [userNote, setUserNote] = useState('')
   const [showNoteModal, setShowNoteModal] = useState(false)
-  // Provider data structure for external feeds
-  const [providerData, setProviderData] = useState({
-    total: 0,
-    providers: [],
-    lastUpdated: null
-  })
+
 
   // Remove duplicate properties based on title and location
   const removeDuplicateProperties = (properties) => {
@@ -130,39 +124,29 @@ const Properties = () => {
   useEffect(() => {
     const fetchProperties = async () => {
       try {
+        console.log('🏠 Properties component: Starting to fetch properties...')
         setLoading(true)
         setError(null)
         
-        // Fetch both local and provider data
-        const [localResponse, providerDataResult] = await Promise.allSettled([
-          apiService.getProperties(),
-          providerService.fetchAllProviderData({
-            property_type: 'all',
-            limit: 50
-          })
-        ])
+        // Fetch local static data
+        const response = await apiService.getProperties()
+        console.log('📡 Properties component: API response:', response)
         
         let allProperties = []
         
         // Process local data
-        if (localResponse.status === 'fulfilled' && localResponse.value.success) {
-          allProperties = [...(localResponse.value.data || [])]
-        }
-        
-        // Process provider data
-        if (providerDataResult.status === 'fulfilled') {
-          allProperties = [...allProperties, ...providerDataResult.value]
-          
-          // Update provider data state for analytics
-          setProviderData({
-            total: providerDataResult.value.length,
-            providers: providerService.getProviderStatus(),
-            lastUpdated: new Date().toISOString()
-          })
+        if (response.success) {
+          allProperties = [...(response.data || [])]
+          console.log('✅ Properties component: Processed properties:', allProperties)
+          console.log('📊 Properties component: Count:', allProperties.length)
+        } else {
+          console.log('❌ Properties component: API response not successful')
         }
         
         // Remove duplicates and set properties
         const uniqueProperties = removeDuplicateProperties(allProperties)
+        console.log('🔄 Properties component: After removing duplicates:', uniqueProperties)
+        console.log('📈 Properties component: Final count:', uniqueProperties.length)
         setProperties(uniqueProperties)
         
         if (allProperties.length === 0) {
@@ -184,8 +168,8 @@ const Properties = () => {
 
   const filteredProperties = Array.isArray(properties) ? properties.filter(property => {
     // Only show exclusive properties on this page
-    const exclusiveMatch = property.type === 'exclusive'
-    const typeMatch = filter === 'all' || property.type === filter
+    const exclusiveMatch = property.category === 'exclusive'
+    const typeMatch = filter === 'all' || property.category === filter
     const locationMatch = locationFilter === 'all' || property.location === locationFilter
     const projectMatch = projectFilter === 'all' || (property.projectName && property.projectName === projectFilter)
     const bedroomsMatch = bedroomsFilter === 'all' || property.bedrooms === parseInt(bedroomsFilter)
@@ -544,12 +528,7 @@ const Properties = () => {
                           {property.constructionStatus}
                         </span>
                       )}
-                      {/* Provider Badge */}
-                      {property.provider && (
-                        <span className="px-3 py-1 bg-gradient-to-r from-gold-600 to-yellow-500 text-black text-xs font-semibold rounded-full">
-                          {property.provider}
-                        </span>
-                      )}
+
                     </div>
                     
                     {/* Action Buttons */}
