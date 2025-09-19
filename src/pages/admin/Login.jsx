@@ -31,18 +31,19 @@ const AdminLogin = () => {
       
       console.log('Login form submitted with:', credentials);
       
-      // Call static API service for authentication
-      const data = await apiService.adminLogin(credentials);
+      // Call real API service for authentication
+      const data = await apiService.realAdminLogin(credentials);
       
       if (!data.success) {
         throw new Error(data.message || 'Login failed');
       }
       
-      // Store real token and admin data
-      localStorage.setItem('adminToken', data.token);
-      localStorage.setItem('adminUser', JSON.stringify(data.admin));
+      // Token and user data are already stored in the realAdminLogin function
+      // But we can also access them from the response
+      console.log('Login successful, token:', data.token);
+      console.log('User data:', data.admin);
       
-      toast.success('Login successful!', {
+      toast.success(data.message || 'Login successful!', {
         style: {
           background: '#1F2937',
           color: '#F3E8D6',
@@ -153,7 +154,7 @@ const AdminLogin = () => {
             {loading ? 'Signing in...' : 'Sign in'}
           </button>
           <p className="text-center text-sm text-yellow-200">
-            Test credentials: admin@amzproperties.com / admin123
+            Test credentials: admin@mail.com / Alchohol@123
           </p>
         </form>
       </div>

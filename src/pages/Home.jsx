@@ -373,8 +373,8 @@ const Home = () => {
       try {
         const result = await apiService.getProperties()
         if (result.success && Array.isArray(result.data)) {
-          const exclusive = result.data.filter(property => property.type === 'exclusive')
-          const offPlan = result.data.filter(property => property.type === 'off-plan')
+          const exclusive = result.data.filter(property => property.category === 'exclusive')
+          const offPlan = result.data.filter(property => property.category === 'off-plan')
           setAllExclusiveProperties(exclusive)
           setAllOffPlanProperties(offPlan)
           setExclusiveProperties(exclusive.slice(0, 3))
@@ -702,12 +702,12 @@ const Home = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-luxury-600/60 to-gold-600/60 sm:from-luxury-600/40 sm:to-gold-600/40"></div>
         
         {/* Background Indicators */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-2 z-10">
+        <div className="absolute bottom-4 xs:bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-1 xs:space-x-2 z-10">
           {heroBackgrounds.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentBgIndex(index)}
-              className={`w-3 h-3 rounded-full transition-all duration-300 ${
+              className={`w-2 h-2 xs:w-3 xs:h-3 rounded-full transition-all duration-300 ${
                 index === currentBgIndex 
                   ? 'bg-gold-400 scale-125' 
                   : 'bg-white/50 hover:bg-white/70'
@@ -716,31 +716,31 @@ const Home = () => {
           ))}
         </div>
         
-        <div className="relative container mx-auto px-4 py-12 sm:py-20 flex flex-col justify-center min-h-screen">
+        <div className="relative container mx-auto px-2 xs:px-4 py-8 xs:py-12 sm:py-20 flex flex-col justify-center min-h-screen">
           <div className="text-center max-w-6xl mx-auto">
-            <div className="mb-6 sm:mb-8">
-              <span className="text-gold-400 font-medium tracking-wider uppercase text-sm sm:text-lg mb-4 block">Welcome to AMZ Properties</span>
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-4 sm:mb-6 font-serif bg-gradient-to-r from-white via-gold-200 to-white bg-clip-text text-transparent leading-tight">
-                Dubai's Premier<br className="hidden sm:block" /><span className="sm:hidden"> </span>Luxury Real Estate
+            <div className="mb-4 xs:mb-6 sm:mb-8">
+              <span className="text-gold-400 font-medium tracking-wider uppercase text-xs xs:text-sm sm:text-lg mb-2 xs:mb-4 block">Welcome to AMZ Properties</span>
+              <h1 className="text-2xl xs:text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-3 xs:mb-4 sm:mb-6 font-serif bg-gradient-to-r from-white via-gold-200 to-white bg-clip-text text-transparent leading-tight px-1">
+                Dubai's Premier<br className="hidden xs:block" /><span className="xs:hidden"> </span>Luxury Real Estate
               </h1>
-              <p className="text-lg sm:text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto leading-relaxed mb-8 sm:mb-12 px-4 sm:px-0">
+              <p className="text-sm xs:text-base sm:text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto leading-relaxed mb-6 xs:mb-8 sm:mb-12 px-2 xs:px-4 sm:px-0">
                 Discover exceptional properties in the world's most prestigious locations. 
                 We specialize in exclusive luxury real estate that defines sophisticated living.
               </p>
             </div>
             
             {/* Property Search */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 sm:p-6 lg:p-8 mb-8 sm:mb-12 border border-white/20 mx-4 sm:mx-0">
-              <h3 className="text-lg sm:text-xl lg:text-2xl font-semibold mb-4 sm:mb-6 text-gold-200">Find Your Dream Luxury Property</h3>
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl xs:rounded-2xl p-3 xs:p-4 sm:p-6 lg:p-8 mb-6 xs:mb-8 sm:mb-12 border border-white/20 mx-2 xs:mx-4 sm:mx-0">
+              <h3 className="text-sm xs:text-base sm:text-xl lg:text-2xl font-semibold mb-3 xs:mb-4 sm:mb-6 text-gold-200 px-1">Find Your Dream Luxury Property</h3>
+              <div className="flex flex-col gap-2 xs:gap-3 sm:gap-4">
                 <input
                   type="text"
-                  placeholder="Enter project name or location..."
+                  placeholder="Enter project name..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1 px-4 sm:px-6 py-3 sm:py-4 rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-transparent text-sm sm:text-base"
+                  className="w-full px-3 xs:px-4 sm:px-6 py-2 xs:py-3 sm:py-4 rounded-lg xs:rounded-xl bg-white/20 backdrop-blur-sm border border-white/30 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-transparent text-xs xs:text-sm sm:text-base"
                 />
-                <button className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-luxury-600 to-gold-500 text-white rounded-xl font-semibold hover:from-luxury-700 hover:to-gold-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 text-sm sm:text-base">
+                <button className="w-full px-4 xs:px-6 sm:px-8 py-2 xs:py-3 sm:py-4 bg-gradient-to-r from-luxury-600 to-gold-500 text-white rounded-lg xs:rounded-xl font-semibold hover:from-luxury-700 hover:to-gold-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 text-xs xs:text-sm sm:text-base">
                   Search Properties
                 </button>
               </div>
@@ -888,7 +888,7 @@ const Home = () => {
               <div key={property.id} onClick={() => handlePropertyClick(property)} className="group luxury-card overflow-hidden w-full h-full flex flex-col transform transition-all duration-500 hover:scale-105 hover:shadow-2xl hover:shadow-gold-500/20 animate-fade-in cursor-pointer" style={{animationDelay: `${index * 0.1}s`}}>
                 <div className="relative overflow-hidden">
                   <img 
-                    src={property.image} 
+                    src={property.images && property.images.length > 0 ? property.images[0] : property.image} 
                     alt={property.title}
                     className="w-full h-48 sm:h-56 lg:h-64 object-cover group-hover:scale-110 transition-transform duration-700"
                   />
@@ -1011,7 +1011,7 @@ const Home = () => {
               <div key={property.id} onClick={() => handlePropertyClick(property)} className="group luxury-card overflow-hidden w-full h-full flex flex-col transform transition-all duration-500 hover:scale-105 hover:shadow-2xl hover:shadow-gold-500/20 animate-fade-in cursor-pointer" style={{animationDelay: `${index * 0.1}s`}}>
                 <div className="relative overflow-hidden">
                   <img 
-                    src={property.image} 
+                    src={property.images && property.images.length > 0 ? property.images[0] : property.image} 
                     alt={property.title}
                     className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-700"
                   />
@@ -1507,7 +1507,7 @@ const Home = () => {
                 <article className="luxury-card overflow-hidden group cursor-pointer h-full flex flex-col transform transition-all duration-500 hover:scale-105 hover:shadow-2xl hover:shadow-gold-500/20">
                   <div className="relative overflow-hidden">
                     <img 
-                      src={post.image ? `http://localhost:5003${post.image}` : 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400&h=250&fit=crop'} 
+                      src={post.image || 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400&h=250&fit=crop'} 
                       alt={post.title}
                       className="w-full h-48 sm:h-52 lg:h-56 object-cover group-hover:scale-110 transition-transform duration-700"
                     />

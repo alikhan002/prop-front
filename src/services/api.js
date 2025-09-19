@@ -1,5 +1,14 @@
 // Static API service - returns static data instead of making HTTP requests
 import { properties, blogs, partners, reviews, contacts } from '../data/index.js';
+import { projects } from '../data/projects.js';
+
+// Global API configuration
+const API_CONFIG = {
+  BASE_URL: 'http://127.0.0.1:5000',
+  ENDPOINTS: {
+    LOGIN: '/api/users/login/web'
+  }
+};
 
 // Simulate API delay for realistic behavior
 const simulateDelay = (ms = 100) => new Promise(resolve => setTimeout(resolve, ms));
@@ -7,6 +16,7 @@ const simulateDelay = (ms = 100) => new Promise(resolve => setTimeout(resolve, m
 // Local storage keys for admin functionality
 const STORAGE_KEYS = {
   PROPERTIES: 'amz_properties',
+  PROJECTS: 'amz_projects',
   BLOGS: 'amz_blogs',
   PARTNERS: 'amz_partners',
   REVIEWS: 'amz_reviews',
@@ -26,6 +36,12 @@ const initializeLocalStorage = () => {
     localStorage.setItem(STORAGE_KEYS.PROPERTIES, JSON.stringify(properties));
   } else {
     console.log('✅ Properties already exist in localStorage');
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.PROJECTS)) {
+    console.log('💾 Storing projects to localStorage...');
+    localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(projects));
+  } else {
+    console.log('✅ Projects already exist in localStorage');
   }
   if (!localStorage.getItem(STORAGE_KEYS.BLOGS)) {
     localStorage.setItem(STORAGE_KEYS.BLOGS, JSON.stringify(blogs));
@@ -184,6 +200,114 @@ class StaticApiService {
       return this.createResponse(null, true, 'Property deleted successfully');
     } else {
       throw new Error('Property not found');
+    }
+  }
+
+  // Projects API methods
+  async getProjects(filters = {}) {
+    await simulateDelay();
+    let projectsData = getFromStorage(STORAGE_KEYS.PROJECTS);
+    
+    console.log('🔍 getProjects called with filters:', filters);
+    console.log('📦 Raw projects data from storage:', projectsData);
+    console.log('📊 Projects count:', projectsData ? projectsData.length : 0);
+    
+    // Apply filters
+    if (filters.status && filters.status !== 'all') {
+      projectsData = projectsData.filter(p => p.status === filters.status);
+    }
+    if (filters.location && filters.location !== 'all') {
+      projectsData = projectsData.filter(p => p.location.toLowerCase().includes(filters.location.toLowerCase()));
+    }
+    if (filters.developer && filters.developer !== 'all') {
+      projectsData = projectsData.filter(p => p.developer.toLowerCase().includes(filters.developer.toLowerCase()));
+    }
+    if (filters.category && filters.category !== 'all') {
+      projectsData = projectsData.filter(p => p.category === filters.category);
+    }
+    if (filters.minPrice) {
+      projectsData = projectsData.filter(p => p.priceRange.min >= parseInt(filters.minPrice));
+    }
+    if (filters.maxPrice) {
+      projectsData = projectsData.filter(p => p.priceRange.max <= parseInt(filters.maxPrice));
+    }
+    
+    console.log('✅ Filtered projects data:', projectsData);
+    console.log('📈 Final count:', projectsData ? projectsData.length : 0);
+    
+    return this.createResponse(projectsData);
+  }
+
+  async getProjectById(id) {
+    await simulateDelay();
+    const projectsData = getFromStorage(STORAGE_KEYS.PROJECTS);
+    const project = projectsData.find(p => p._id === id || p.id === id);
+    
+    if (project) {
+      return this.createResponse(project);
+    } else {
+      throw new Error('Project not found');
+    }
+  }
+
+  async searchProjects(query) {
+    await simulateDelay();
+    const projectsData = getFromStorage(STORAGE_KEYS.PROJECTS);
+    const searchResults = projectsData.filter(p => 
+      p.title.toLowerCase().includes(query.toLowerCase()) ||
+      p.description.toLowerCase().includes(query.toLowerCase()) ||
+      p.location.toLowerCase().includes(query.toLowerCase()) ||
+      p.developer.toLowerCase().includes(query.toLowerCase())
+    );
+    
+    return this.createResponse(searchResults);
+  }
+
+  async createProject(projectData) {
+    await simulateDelay();
+    const projectsData = getFromStorage(STORAGE_KEYS.PROJECTS);
+    const newProject = {
+      ...projectData,
+      _id: generateId(),
+      id: generateId(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    projectsData.push(newProject);
+    saveToStorage(STORAGE_KEYS.PROJECTS, projectsData);
+    
+    return this.createResponse(newProject, true, 'Project created successfully');
+  }
+
+  async updateProject(id, projectData) {
+    await simulateDelay();
+    const projectsData = getFromStorage(STORAGE_KEYS.PROJECTS);
+    const index = projectsData.findIndex(p => p._id === id || p.id === id);
+    
+    if (index !== -1) {
+      projectsData[index] = {
+        ...projectsData[index],
+        ...projectData,
+        updatedAt: new Date().toISOString()
+      };
+      saveToStorage(STORAGE_KEYS.PROJECTS, projectsData);
+      return this.createResponse(projectsData[index], true, 'Project updated successfully');
+    } else {
+      throw new Error('Project not found');
+    }
+  }
+
+  async deleteProject(id) {
+    await simulateDelay();
+    const projectsData = getFromStorage(STORAGE_KEYS.PROJECTS);
+    const filteredProjects = projectsData.filter(p => p._id !== id && p.id !== id);
+    
+    if (filteredProjects.length < projectsData.length) {
+      saveToStorage(STORAGE_KEYS.PROJECTS, filteredProjects);
+      return this.createResponse(null, true, 'Project deleted successfully');
+    } else {
+      throw new Error('Project not found');
     }
   }
 
@@ -612,6 +736,47 @@ class StaticApiService {
       return this.createResponse({ token, user: { username: 'admin', role: 'admin' } }, true, 'Login successful');
     } else {
       throw new Error('Invalid credentials');
+    }
+  }
+
+  // Real API login function for backend integration
+  async realAdminLogin(credentials) {
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.LOGIN}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email_address: credentials.email,
+          password: credentials.password
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.response_code === 200) {
+        // Store the access token in localStorage
+        const accessToken = data.response_data.access_token;
+        localStorage.setItem('adminToken', accessToken);
+        localStorage.setItem('adminUser', JSON.stringify(data.response_data.user));
+        
+        return {
+          success: true,
+          token: accessToken,
+          admin: data.response_data.user,
+          message: data.response_message
+        };
+      } else {
+        throw new Error(data.response_message || 'Login failed');
+      }
+    } catch (error) {
+      console.error('Login API error:', error);
+      throw new Error(error.message || 'Network error occurred');
     }
   }
 
